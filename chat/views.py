@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions
 from .models import ChatRoom, Message
 from .serializers import ChatRoomSerializer, MessageSerializer
+from django.shortcuts import render
 
 class ChatRoomViewSet(viewsets.ModelViewSet):
     queryset = ChatRoom.objects.all()
@@ -19,3 +20,15 @@ class MessageViewSet(viewsets.ModelViewSet):
         if after:
             qs = qs.filter(timestamp__gt=after)
         return qs.order_by('timestamp')
+
+def index_view(request):
+    return render(request, 'index.html', {
+        'rooms': ChatRoom.objects.all(),
+    })
+
+def room_view(request, room_name):
+    chat_room, created = ChatRoom.objects.get_or_create(name=room_name)
+    return render(request, 'room.html', {
+        'room': chat_room,
+    })
+

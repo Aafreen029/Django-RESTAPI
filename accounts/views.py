@@ -8,7 +8,6 @@ from rest_framework.views import APIView
 from rest_framework import status
 # Create your views here.
 
-
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
