@@ -1,20 +1,17 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from channels.db import database_sync_to_async
-from .models import Message, ChatRoom
-from django.contrib.auth import get_user_model
-User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
+        self.room_group_name = f"chat_{self.room_name}"
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
+        print(f"🔌 WebSocket connected to room: {self.room_name}")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -23,27 +20,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
+        print("Received:", text_data)
         data = json.loads(text_data)
-        message = data['message']
-        sender_id = self.scope['user'].id
-
-        # Save to DB
-        room = await database_sync_to_async(ChatRoom.objects.get)(name=self.room_name)
-        sender = await database_sync_to_async(User.objects.get)(id=sender_id)
-        await database_sync_to_async(Message.objects.create)(
-        room=room, sender=sender, content=message
-        )
-
+        message = data.get("message", "")
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'chat_message',
-                'message': message,
-                'sender': sender.username,
+                "type": "chat.message",
+                "message": message,
+                "sender": str(self.scope["user"])
             }
         )
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
-            'message': event['message']
+            "message": event["message"],
+            "sender": event.get("sender", "Anonymous")
         }))

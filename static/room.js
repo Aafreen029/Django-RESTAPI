@@ -2,6 +2,25 @@ console.log("Sanity check from room.js.");
 
 const roomName = JSON.parse(document.getElementById('roomName').textContent);
 
+const socket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/`);
+socket.onopen = function() {
+    console.log("✅ WebSocket connected");
+};
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    const message = `${data.sender || "Anonymous"}: ${data.message}\n`;
+    chatLog.value += message;
+    chatLog.scrollTop = chatLog.scrollHeight;
+};
+
+socket.onclose = function() {
+    console.log("🔌 WebSocket disconnected");
+};
+
+socket.onerror = function(error) {
+    console.error("❌ WebSocket error:", error);
+};
+
 let chatLog = document.querySelector("#chatLog");
 let chatMessageInput = document.querySelector("#chatMessageInput");
 let chatMessageSend = document.querySelector("#chatMessageSend");
@@ -32,9 +51,15 @@ chatMessageInput.onkeyup = function(e) {
     }
 };
 
-// clear the 'chatMessageInput' and forward the message
+//  Send message to WebSocket
 chatMessageSend.onclick = function() {
-    if (chatMessageInput.value.length === 0) return;
-    // TODO: forward the message to the WebSocket
+    const message = chatMessageInput.value.trim();
+    if (message.length === 0) return;
+
+    if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ message }));
     chatMessageInput.value = "";
+    } else {
+        console.warn("❌ Cannot send: WebSocket not open");
+    }
 };
